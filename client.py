@@ -14,8 +14,8 @@ class Client:
     OUTRO_SIZE = 16
 
     TIMEOUT = 30
-    PACK_SIZE = 8192
-    PACK_COUNT = 100
+    PACK_SIZE = 16384
+    PACK_COUNT = 50
 
     def __init__(self, server_address, port):
         self.server_address = server_address
@@ -42,7 +42,12 @@ class Client:
         for i in range(Client.PACK_COUNT):
             request = get_block(Client.PACK_SIZE)
             self.sock.send(request)
+
             response = self.sock.recv(Client.PACK_SIZE)
+            if (response == request):
+                print(str(i) + "+")
+            else:
+                print(str(i) + "-")
 
     def get_answer(self):
         answer = self.sock.recv(Client.OUTRO_SIZE)
@@ -60,6 +65,8 @@ class Client:
 
         try:
             self.sock.connect((self.server_address, self.port))
+            self.sock.settimeout(None)
+
             if self.send_intro():
                 self.measure()
                 answer = self.get_answer()
@@ -69,10 +76,15 @@ class Client:
 
                 result = "Packets succeded: {}/{}\n".format(str(count), str(Client.PACK_COUNT))
                 result += "Time: {}\n".format(time)
-                total_size = Client.PACK_SIZE * Client.PACK_COUNT
+
+                print(result)
+
+                total_size = Client.PACK_SIZE * Client.PACK_COUNT   # in bytes
                 result += "Speed: ~{}".format(total_size / time / 1024 ** 2 * 1000 ** 2)
 
                 print(result)
+            else:
+                print("Try again")
 
         except ConnectionRefusedError:
             print("No server found on " + self.server_address + ":" + str(self.port))

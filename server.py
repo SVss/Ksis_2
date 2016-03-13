@@ -8,6 +8,8 @@ class Server:
     OUTRO_SIZE = 16
     TIMEOUT = 30
 
+    DELIMITER = "<--------------------------------------\n"
+
     def __init__(self, port):
         self.port = port
         self.sock = None
@@ -39,13 +41,13 @@ class Server:
                 total_received = 0
                 for i in range(blocks_count):
                     block = self.client_socket.recv(block_size)
-#                    print(str(i) + ": " + str(int.from_bytes(block, byteorder='little')))
+                    #                    print(str(i) + ": " + str(int.from_bytes(block, byteorder='little')))
                     end_time = datetime.now()
+
+                    self.client_socket.send(block)
 
                     if block == check(block_size):
                         total_received += 1
-
-                    self.client_socket.send(block)
 
                 print("Session complited")
 
@@ -55,8 +57,8 @@ class Server:
                 print("Total blocks received: {}\nTotal time: {} mcs".format(total_received, total_time))
 
                 result = bytearray(Server.OUTRO_SIZE)
-                result[:Server.OUTRO_SIZE // 2] = total_time.to_bytes(Server.OUTRO_SIZE // 2, byteorder='little')
-                result[Server.OUTRO_SIZE // 2:] = total_received.to_bytes(Server.OUTRO_SIZE // 2, byteorder='little')
+                result[:Server.OUTRO_SIZE // 2] = total_received.to_bytes(Server.OUTRO_SIZE // 2, byteorder='little')
+                result[Server.OUTRO_SIZE // 2:] = total_time.to_bytes(Server.OUTRO_SIZE // 2, byteorder='little')
 
                 self.client_socket.send(result)
 
@@ -67,6 +69,7 @@ class Server:
 
             finally:
                 self.client_socket.close()
+                print(Server.DELIMITER)
 
     def start(self):
         print("Server started")
