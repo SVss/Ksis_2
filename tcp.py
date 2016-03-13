@@ -55,4 +55,3 @@ if __name__ == '__main__':
         elif args_info["mode"] == Mode.client:
             client = Client(args_info["address"], int(args_info["port"]))
             client.start()
-

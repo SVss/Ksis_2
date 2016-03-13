@@ -1,9 +1,11 @@
 import socket
 from datetime import datetime
+from client import get_block as check
 
 
 class Server:
-    INTRO_SIZE = 8
+    INTRO_SIZE = 16
+    OUTRO_SIZE = 16
     TIMEOUT = 30
 
     def __init__(self, port):
@@ -22,19 +24,46 @@ class Server:
             self.client_socket, self.client_address = self.sock.accept()
             print(self.client_address[0] + ":" + str(self.client_address[1]) + " connected!")
 
+# move to thread
             try:
-                block_size = self.client_socket.recv(Server.INTRO_SIZE)
-                block_size = int.from_bytes(block_size, byteorder='little')
+                intro = self.client_socket.recv(Server.INTRO_SIZE)
 
-                print("Block size: " + str(block_size))
+                block_size = int.from_bytes(intro[:Server.INTRO_SIZE // 2], byteorder='little')
+                blocks_count = int.from_bytes(intro[Server.INTRO_SIZE // 2:], byteorder='little')
+                print("Block size: {}\nBlock count: {}".format(block_size, blocks_count))
 
-                answer = bytearray(block_size)
-                answer = block_size.to_bytes(block_size, byteorder='little')
+                self.client_socket.send(intro)
+                end_time = start_time = datetime.now()
+                print("Session started")
 
-                self.client_socket.send(answer)
+                total_received = 0
+                for i in range(blocks_count):
+                    block = self.client_socket.recv(block_size)
+#                    print(str(i) + ": " + str(int.from_bytes(block, byteorder='little')))
+                    end_time = datetime.now()
 
-            except:
-                print("error")
+                    if block == check(block_size):
+                        total_received += 1
+
+                    self.client_socket.send(block)
+
+                print("Session complited")
+
+                total_time = end_time - start_time
+                total_time = total_time.seconds * 10**6 + total_time.microseconds
+
+                print("Total blocks received: {}\nTotal time: {} mcs".format(total_received, total_time))
+
+                result = bytearray(Server.OUTRO_SIZE)
+                result[:Server.OUTRO_SIZE // 2] = total_time.to_bytes(Server.OUTRO_SIZE // 2, byteorder='little')
+                result[Server.OUTRO_SIZE // 2:] = total_received.to_bytes(Server.OUTRO_SIZE // 2, byteorder='little')
+
+                self.client_socket.send(result)
+
+                print("Client disconnected")
+
+            except (ConnectionResetError, ConnectionAbortedError):
+                print("Connection suddenly closed")
 
             finally:
                 self.client_socket.close()
@@ -50,8 +79,7 @@ class Server:
             self.pass_clients()
 
         except (KeyboardInterrupt, SystemExit):
-            print("Stopped by user")
-            raise
+            print("Server stopped by user")
 
         finally:
             self.sock.close()
