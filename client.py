@@ -1,10 +1,11 @@
-import sockets
+import socket
 from generator import generate
 
-INIT_VALUE = 357
 NO_OFF_T = 8
-LN_OFF_T = 16
 PACK_SIZE = 4096
+PACKS_COUNT = 20
+
+TIMEOUT = 5.0
 
 class Client:
     def __init__(self, srv_address, port, packets_count=20):
@@ -14,36 +15,39 @@ class Client:
         self.srv_port = port
 
         self.packets_count = packets_count
-        self.packet_size = packet_size
 
-    def form_packet(self, size, count, pack_no, data):
-        result = bytearray(size)
+    def form_packet(self, pack_no, data):
+        result = bytearray(PACK_SIZE)
         result[:NO_OFF_T] = int.to_bytes(pack_no, NO_OFF_T, byteorder='little')
-        result[NO_OFF_T:LN_OFF_T] = int.to_bytes(count, NO_OFF_T - LN_SIZE, byteorder='little')
-        result[LN_OFF_T:] = int.to_bytes(data, size - LN_OFF_T, byteorder='little')
+        result[NO_OFF_T:] = int.to_bytes(data, PACK_SIZE - NO_OFF_T, byteorder='little')
 
         return result
 
     def measure(self):
-        packet_no = 0
+        for i in range(self.packets_count):
+            pack = generate(i+1)
 
-        for pack in generate(self.packets_count, INIT_VALUE):
-            packet_no += 1
-
-            request = self.form_packet(self.packet_size, self.packets_count, packet_no, pack)
+            request = self.form_packet(i+1, pack)
             self.sock.sendto(request, (self.srv_address, self.srv_port))
 
     def get_result(self):
+        self.sock.settimeout(TIMEOUT)
+        try:
+            result = self.sock.recv(PACK_SIZE)
 
-        return "Over"
+        except socket.timeout:
+            return "No answer"
+
+        return result.decode('utf-8').strip()
 
     def start(self):
         print("Client started")
 
         try:
             self.measure()
+            result = self.get_result()
+
         finally:
             self.sock.close()
 
-        result = self.get_result()
         print(result)
