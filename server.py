@@ -65,7 +65,7 @@ class ClientThread:#(Thread):
         result += "Overall time:\t{} mcsec\n".format(self.total_time)
 
         speed = ((full_size // 1024) / self.total_time) * 10**6  # in KB/sec
-        result += "Speed:\t~{} KB/sec\n".format(speed)
+        result += "Speed:\t~{0:.2f} KB/sec\n".format(speed)
 
         print(result)
 
@@ -101,6 +101,7 @@ class Server:
             client_socket, client_address = self.sock.accept()
             print(client_address, " connected")
 
+# move to thread
             client = ClientThread(client_socket)
             client.run()
 
