@@ -1,96 +1,79 @@
-import socket
-
-
-def get_block(size):
-    # generate block here randomly
-    block = 42
-
-    result = block.to_bytes(size, byteorder='little')
-    return result
+from mysocket import MyTCPSocket
+from random import randint
+from generator import generate
 
 
 class Client:
-    INTRO_SIZE = 16
-    OUTRO_SIZE = 16
+    SERVICE_MSG_SIZE = 24
 
-    TIMEOUT = 30
-    PACK_SIZE = 16384
-    PACK_COUNT = 50
+    def __init__(self, srv_address, srv_port, packets_count=20, packet_size=4096):
+        self.sock = MyTCPSocket()
 
-    def __init__(self, server_address, port):
-        self.server_address = server_address
-        self.port = port
-        self.sock = None
+        self.srv_address = srv_address
+        self.srv_port = srv_port
 
-        print("Client created\n\t-server address: {}\n\t-server port: {}".format(server_address, port))
+        self.packets_count = packets_count
+        self.packet_size = packet_size
+        self.init_value = randint(0, 65536)
+        #print(self.init_value)
 
     def send_intro(self):
-        intro = bytearray(Client.INTRO_SIZE)
+        intro = bytearray(Client.SERVICE_MSG_SIZE)
 
-        intro[:Client.INTRO_SIZE] = Client.PACK_SIZE.to_bytes(Client.INTRO_SIZE // 2, byteorder='little')
-        intro[Client.INTRO_SIZE:] = Client.PACK_COUNT.to_bytes(Client.INTRO_SIZE // 2, byteorder='little')
+        tick = Client.SERVICE_MSG_SIZE // 3
+        intro[:tick] = self.packet_size.to_bytes(tick, byteorder='little')
+        intro[tick:2*tick] = self.packets_count.to_bytes(tick, byteorder='little')
+        intro[2*tick:] = self.init_value.to_bytes(tick, byteorder='little')
 
-        self.sock.send(intro)
-        response = self.sock.recv(Client.PACK_SIZE)
+        self.sock.send(intro, Client.SERVICE_MSG_SIZE)
+        response = self.sock.recv(Client.SERVICE_MSG_SIZE)
 
         if response == intro:
             return True
-
         return False
 
     def measure(self):
-        for i in range(Client.PACK_COUNT):
-            request = get_block(Client.PACK_SIZE)
-            self.sock.send(request)
+        for pack in generate(self.packets_count, self.init_value):
+            request = int.to_bytes(pack, self.packet_size, byteorder='little')
 
-            response = self.sock.recv(Client.PACK_SIZE)
-            if (response == request):
-                print(str(i) + "+")
-            else:
-                print(str(i) + "-")
+            self.sock.send(request, self.packet_size)
+            response = self.sock.recv(self.packet_size)
 
-    def get_answer(self):
-        answer = self.sock.recv(Client.OUTRO_SIZE)
+    def receive_results(self):
+        result_size = self.sock.recv(Client.SERVICE_MSG_SIZE)
+        result_size = int.from_bytes(result_size, byteorder='little')
+        #print(result_size)
 
-        count = int.from_bytes(answer[:Client.OUTRO_SIZE // 2], byteorder='little')
-        time = int.from_bytes(answer[Client.OUTRO_SIZE // 2:], byteorder='little')
+        result = self.sock.recv(result_size)
+        result = result.decode('utf-8')
 
-        return {"count": count, "time": time}
+        return result
 
     def start(self):
         print("Client started")
 
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.settimeout(Client.TIMEOUT)
-
         try:
-            self.sock.connect((self.server_address, self.port))
-            self.sock.settimeout(None)
+            self.sock.connect(self.srv_address, self.srv_port)
+            print("Connected to server at " + self.srv_address + ":" + str(self.srv_port))
 
             if self.send_intro():
+                print("Intro accepted!")
                 self.measure()
-                answer = self.get_answer()
 
-                time = answer.get("time")
-                count = answer.get("count")
+                results = self.receive_results()
+                print(results)
 
-                result = "Packets succeded: {}/{}\n".format(str(count), str(Client.PACK_COUNT))
-                result += "Time: {}\n".format(time)
-
-                print(result)
-
-                total_size = Client.PACK_SIZE * Client.PACK_COUNT   # in bytes
-                result += "Speed: ~{}".format(total_size / time / 1024 ** 2 * 1000 ** 2)
-
-                print(result)
             else:
-                print("Try again")
+                print("Error: intro rejected.")
+
+        except ConnectionAbortedError:
+            print("Connection closed!")
 
         except ConnectionRefusedError:
-            print("No server found on " + self.server_address + ":" + str(self.port))
+            print("Server not found on " + self.srv_address + ":" + str(self.srv_port))
 
-        except (ConnectionResetError, ConnectionAbortedError):
-            print("Connection suddenly closed")
+        except Exception:
+            print("Runtime error")
 
         finally:
             self.sock.close()
