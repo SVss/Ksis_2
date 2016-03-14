@@ -34,22 +34,20 @@ class Client:
 
     def measure(self):
         for pack in generate(self.packets_count, self.init_value):
-            print(pack)
-
             request = int.to_bytes(pack, self.packet_size, byteorder='little')
 
             self.sock.send(request, self.packet_size)
             response = self.sock.recv(self.packet_size)
 
-            print("+" if request == response else "-")
-
     def receive_results(self):
-        #result_size = self.sock.recv(Client.SERVICE_MSG_SIZE)
-        #self.sock.send(result_size, Client.SERVICE_MSG_SIZE)
+        result_size = self.sock.recv(Client.SERVICE_MSG_SIZE)
+        result_size = int.from_bytes(result_size, byteorder='little')
+        #print(result_size)
 
-        #result_size = int.from_bytes(result_size[:Client.SERVICE_MSG_SIZE // 3], byteorder='little')
+        result = self.sock.recv(result_size)
+        result = result.decode('utf-8')
 
-        pass
+        return result
 
     def start(self):
         print("Client started")

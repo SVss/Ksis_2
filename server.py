@@ -58,6 +58,7 @@ class ClientThread:#(Thread):
         self.total_time = 1 if self.total_time == 0 else self.total_time
 
         result = "Packets received:\t{}/{}\n".format(self.total_received, self.packets_count)
+        result += "Packets lost:\t{}\n".format(self.packets_count - self.total_received)
 
         full_size = self.packet_size * self.packets_count
         result += "Overall size:\t{} bytes\n".format(full_size)
@@ -68,7 +69,11 @@ class ClientThread:#(Thread):
 
         print(result)
 
-        pass
+        result = bytearray(result, encoding='utf-8')
+
+        msg = len(result).to_bytes(ClientThread.SERVICE_MSG_SIZE, byteorder='little')
+        self.socket.send(msg, ClientThread.SERVICE_MSG_SIZE)
+        self.socket.send(result, len(result))
 
     def run(self):
         print("Thread started")
@@ -77,7 +82,7 @@ class ClientThread:#(Thread):
             self.measure()
             self.send_result()
 
-        except ConnectionAbortedError:
+        except (ConnectionAbortedError, ConnectionError):
             print("Connection aborted")
 
         finally:

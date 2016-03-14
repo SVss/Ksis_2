@@ -1,7 +1,7 @@
 import socket
 
 
-class MyTCPSocket():
+class MyTCPSocket:
 
     def __init__(self, sock=None):
         if sock:
