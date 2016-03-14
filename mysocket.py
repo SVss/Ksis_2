@@ -1,7 +1,7 @@
 import socket
 
 
-class MyTCPSocket:
+class MyTCPSocket():
 
     def __init__(self, sock=None):
         if sock:
@@ -11,6 +11,9 @@ class MyTCPSocket:
 
     def connect(self, host, port):
         self.socket.connect((host, port))
+
+    def settimeout(self, timeout=0):
+        self.socket.settimeout(timeout)
 
     def bind(self, host, port):
         self.socket.bind((host, port))
