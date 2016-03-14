@@ -1,59 +1,47 @@
 from generator import generate
-from mysocket import MyTCPSocket
+import socket
 from datetime import datetime
 
-#from threading import Thread
+from client import INIT_VALUE
+from client import NO_OFF_T
+from client import LN_OFF_T
+from client import PACK_SIZE
 
-class ClientThread:#(Thread):
-    SERVICE_MSG_SIZE = 24
+TIMEOUT = 10
 
-    def __init__(self, socket):
-        super(ClientThread, self).__init__()
-        self.socket = MyTCPSocket(socket)
-        self.socket.settimeout(5)
+class Server:
+    def __init__(self, port):
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.port = port
 
-        self.packet_size = None
-        self.packets_count = None
-        self.init_value = 0
+        self.total_time = None
+        self.total_received = None
 
-        self.total_received = 0
-        self.total_time = 0
-
-    def receive_intro(self):
-        intro = self.socket.recv(ClientThread.SERVICE_MSG_SIZE)
-
-        tick = ClientThread.SERVICE_MSG_SIZE // 3
-        self.packet_size = int.from_bytes(intro[:tick], byteorder='little')
-        self.packets_count = int.from_bytes(intro[tick:2*tick], byteorder='little')
-        self.init_value = int.from_bytes(intro[2*tick:], byteorder='little')
-
-        print("Intro:")
-        print("s: {} bytes".format(self.packet_size))
-        print("c: " + str(self.packets_count))
-        print("i: " + str(self.init_value))
-        print("----------------------")
-
-        self.socket.send(intro, ClientThread.SERVICE_MSG_SIZE)
+        self.clientInfo = None
 
     def measure(self):
         self.total_time = 0
         self.total_received = 0
+
+        data, self.clientInfo = self.sock.recvfrom(PACK_SIZE)
+
         start_time = last_time = datetime.now()
 
-        for check in generate(self.packets_count, self.init_value):
-            req = self.socket.recv(self.packet_size)
-            self.socket.send(req, self.packet_size)
+        try:
 
-            last_time = datetime.now()
-
-            req = int.from_bytes(req, byteorder='little')
-            if req == check:
+            while 1:
+                req = self.sock.recvfrom(PACK_SIZE)
                 self.total_received += 1
+                last_time = datetime.now()
+
+                req = int.from_bytes(req, byteorder='little')
+
+        except socket.timeout:
+            print("------------------")
 
         self.total_time = last_time - start_time
 
     def send_result(self):
-
         self.total_time = self.total_time.seconds * 10**6 + self.total_time.microseconds
         self.total_time = 1 if self.total_time == 0 else self.total_time
 
@@ -71,54 +59,15 @@ class ClientThread:#(Thread):
 
         result = bytearray(result, encoding='utf-8')
 
-        msg = len(result).to_bytes(ClientThread.SERVICE_MSG_SIZE, byteorder='little')
-        self.socket.send(msg, ClientThread.SERVICE_MSG_SIZE)
-        self.socket.send(result, len(result))
-
-    def run(self):
-        print("Thread started")
-        try:
-            self.receive_intro()
-            self.measure()
-            self.send_result()
-
-        except (ConnectionAbortedError, ConnectionError):
-            print("Connection aborted")
-
-        finally:
-            self.socket.close()
-            print("Thread finished\n<=========================")
-
-
-class Server:
-    def __init__(self, port):
-        self.sock = MyTCPSocket()
-        self.port = port
-        self.clients = []
-
-    def apply_clients(self):
-        while 1:
-            client_socket, client_address = self.sock.accept()
-            print(client_address, " connected")
-
-# move to thread
-            client = ClientThread(client_socket)
-            client.run()
-
-            #self.clients.append(ClientThread(client_socket))
-            #self.clients[len(self.clients)-1].start()
-
     def start(self):
         print("Server started")
 
-        self.sock.bind("", self.port)
-        self.sock.listen(5)
+        self.sock.bind(("", self.port))
 
         try:
-            self.apply_clients()
-
-        except (KeyboardInterrupt, SystemExit):
-            print("Server stopped by user")
+            self.measure()
+            self.send_result()
 
         finally:
             self.sock.close()
+            print("\n<=========================\n")
