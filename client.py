@@ -44,6 +44,11 @@ class Client:
             print("+" if request == response else "-")
 
     def receive_results(self):
+        #result_size = self.sock.recv(Client.SERVICE_MSG_SIZE)
+        #self.sock.send(result_size, Client.SERVICE_MSG_SIZE)
+
+        #result_size = int.from_bytes(result_size[:Client.SERVICE_MSG_SIZE // 3], byteorder='little')
+
         pass
 
     def start(self):

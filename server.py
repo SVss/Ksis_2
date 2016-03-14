@@ -36,22 +36,38 @@ class ClientThread:#(Thread):
         self.socket.send(intro, ClientThread.SERVICE_MSG_SIZE)
 
     def measure(self):
-        #timetick start=last=0 here
+        self.total_time = 0
         self.total_received = 0
+        start_time = last_time = datetime.now()
 
         for check in generate(self.packets_count, self.init_value):
             req = self.socket.recv(self.packet_size)
             self.socket.send(req, self.packet_size)
 
-            #timestick last here
+            last_time = datetime.now()
 
             req = int.from_bytes(req, byteorder='little')
             if req == check:
                 self.total_received += 1
 
-        print(self.total_received)
+        self.total_time = last_time - start_time
 
     def send_result(self):
+
+        self.total_time = self.total_time.seconds * 10**6 + self.total_time.microseconds
+        self.total_time = 1 if self.total_time == 0 else self.total_time
+
+        result = "Packets received:\t{}/{}\n".format(self.total_received, self.packets_count)
+
+        full_size = self.packet_size * self.packets_count
+        result += "Overall size:\t{} bytes\n".format(full_size)
+        result += "Overall time:\t{} mcsec\n".format(self.total_time)
+
+        speed = ((full_size // 1024) / self.total_time) * 10**6  # in KB/sec
+        result += "Speed:\t~{} KB/sec\n".format(speed)
+
+        print(result)
+
         pass
 
     def run(self):
