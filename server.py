@@ -71,7 +71,7 @@ class Server:
         result = "Packets received:\t{}/{}\n".format(self.total_received, PACKS_COUNT)
         result += "Packets lost:\t{}\n".format(PACKS_COUNT - self.total_received)
 
-        full_size = PACK_SIZE * PACKS_COUNT
+        full_size = PACK_SIZE * self.total_received
         result += "Overall size:\t{} bytes\n".format(full_size)
         result += "Overall time:\t{} mcsec\n".format(self.total_time)
 
