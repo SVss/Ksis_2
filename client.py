@@ -8,7 +8,7 @@ PACKS_COUNT = 100
 TIMEOUT = 10.0
 
 class Client:
-    def __init__(self, srv_address, port, packets_count=20):
+    def __init__(self, srv_address, port, packets_count=PACKS_COUNT):
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
         self.srv_address = srv_address

@@ -1,18 +1,18 @@
-from generator import generate
 import socket
+from generator import generate
 from datetime import datetime
 
 from client import NO_OFF_T
 from client import PACK_SIZE
 from client import PACKS_COUNT
 
-TIMEOUT = 10.0
-EFFORTS_COUNT = 10
+TIMEOUT = 5.0
+EFFORTS_COUNT = 100
 
 
 class Server:
     def __init__(self, port):
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.sock = None
         self.port = port
 
         self.total_time = None
@@ -81,6 +81,8 @@ class Server:
         print(result)
         print("\n<=========================\n")
 
+        print(self.clientInfo[0])
+
         result = bytearray(result.ljust(PACK_SIZE), encoding='utf-8')
         for i in range(EFFORTS_COUNT):
             self.sock.sendto(result, self.clientInfo)
@@ -88,15 +90,18 @@ class Server:
     def start(self):
         print("Server started")
 
-        self.sock.bind(("", self.port))
-
         try:
-            self.measure()
-            self.analyze()
-            self.send_result()
+            while 1:
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.sock.bind(("", self.port))
+
+                try:
+                    self.measure()
+                    self.analyze()
+                    self.send_result()
+
+                finally:
+                    self.sock.close()
 
         except (KeyboardInterrupt, SystemExit):
             print("Closed by user")
-
-        finally:
-            self.sock.close()
