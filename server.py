@@ -6,7 +6,7 @@ from client import NO_OFF_T
 from client import PACK_SIZE
 from client import PACKS_COUNT
 
-TIMEOUT = 3.0
+TIMEOUT = 10.0
 EFFORTS_COUNT = 10
 
 

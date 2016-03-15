@@ -3,9 +3,9 @@ from generator import generate
 
 NO_OFF_T = 8
 PACK_SIZE = 4096
-PACKS_COUNT = 20
+PACKS_COUNT = 100
 
-TIMEOUT = 5.0
+TIMEOUT = 10.0
 
 class Client:
     def __init__(self, srv_address, port, packets_count=20):
