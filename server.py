@@ -31,7 +31,7 @@ class ClientThread:#(Thread):
         print("s: {} bytes".format(self.packet_size))
         print("c: " + str(self.packets_count))
         print("i: " + str(self.init_value))
-        print("----------------------")
+        print("-"*10)
 
         self.socket.send(intro, ClientThread.SERVICE_MSG_SIZE)
 
@@ -87,7 +87,7 @@ class ClientThread:#(Thread):
 
         finally:
             self.socket.close()
-            print("Thread finished\n<=========================")
+            print("Thread finished\n<"+"="*10)
 
 
 class Server:
